@@ -1,2 +1,12 @@
 # P5
-Semester 5 project
+AAU Computer Science : 5th semester project
+
+
+
+# How it works
+
+
+
+
+
+#Important commands
