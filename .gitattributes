@@ -1,1 +1,2 @@
 src/backend/datasets/ml-32m/ratings.csv filter=lfs diff=lfs merge=lfs -text
+src/backend/datasets/ml-32m/music.csv filter=lfs diff=lfs merge=lfs -text
