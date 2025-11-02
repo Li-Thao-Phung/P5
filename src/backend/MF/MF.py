@@ -12,8 +12,29 @@ base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 ratings_path = os.path.join(base_path, "datasets", "ml-32m", "ratings.csv")
 movies_path = os.path.join(base_path, "datasets", "ml-32m", "movies.csv")
 
-chunksize = 500_000  # number of rows per chunk for incremental reading
+train_path = os.path.join(base_path, "datasets", "ml-32m", "train.csv")
+test_path = os.path.join(base_path, "datasets", "ml-32m", "test.csv")
 
+chunksize = 500_000  # number of rows per chunk for incremental reading
+test_ratio = 0.2  # 20% test
+
+# Remove old files if they exist
+if os.path.exists(train_path):
+    os.remove(train_path)
+if os.path.exists(test_path):
+    os.remove(test_path)
+
+
+train_chunks = []
+test_chunks = []
+
+for chunk in pd.read_csv(ratings_path, chunksize=chunksize):
+    mask = np.random.rand(len(chunk)) < test_ratio
+    test_chunk = chunk[mask]
+    train_chunk = chunk[~mask]
+    
+    train_chunk.to_csv(train_path, mode='a', index=False, header=not os.path.exists(train_path))
+    test_chunk.to_csv(test_path, mode='a', index=False, header=not os.path.exists(test_path))
 
 # -----------------------------
 # Load movies metadata
@@ -92,6 +113,8 @@ class MatrixFactorization:
                     self.Q[i, :] += self.alpha * (err * self.P[u, :] - self.lambda_ * self.Q[i, :])
 
 
+
+  
   def predict_user_ratings(self, user_id):
     return self.mu + self.b_u[user_id] + self.b_i + self.P[user_id, :].dot(self.Q.T)
 
@@ -135,8 +158,7 @@ class MatrixFactorization:
 # Initialize model with a small placeholder R for shape info
 R_placeholder = np.zeros((num_users, len(movie_ids)))
 mf = MatrixFactorization(R_placeholder, k=20, alpha=0.01, lamda_=0.1, n_epochs=1)
-mf.train(ratings_path, movie_to_idx, chunksize=10_000)
-
+mf.train(train_path, movie_to_idx, chunksize=10_000)
 
 # -----------------------------
 # Generate predictions for MMR
@@ -157,4 +179,4 @@ for user_idx in range(num_users):
     for rank, idx in enumerate(recommended_idx, start=1):
         print(f"{rank}. {movie_titles[idx]} — Predicted rating: {user_ratings[idx]:.2f}")
 
-__all__ = ['mf', 'movie_user_rating']
+__all__ = ['mf', 'movie_user_rating', 'movie_to_idx']
